@@ -1,0 +1,5 @@
+terraform/.terraform
+
+# mac
+.DS_Store
+nginx/.DS_Store

@@ -1,0 +1,58 @@
+version: '2'
+
+services:
+  flaskapp:
+    build: ./web
+    restart: always
+    expose:
+      - "3000"
+    volumes:
+      - ./web:/home/flask/app/web
+    depends_on:
+      - postgres
+    links:
+      - postgres
+    env_file:
+      - ./.env/.env.dev
+    deploy:
+      mode: replicated
+      replicas: 3
+    networks:
+      - xeneta-network
+
+  nginx:
+    build: nginx/
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    deploy:
+      mode: replicated
+      replicas: 1
+    volumes:
+        - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+        - ./nginx/error:/etc/nginx/sites-enabled/default:ro
+    depends_on:
+        - flaskapp
+    networks:
+      - xeneta-network
+
+  postgres:
+    restart: always
+    image: postgres:alpine
+    volumes:
+      - ./db/rates.sql:/docker-entrypoint-initdb.d/rates.sql
+    healthcheck:
+      test: [“CMD-SHELL”, "psql -h postgres -p 5432 -U postgres", "-c SELECT 'alive'"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    env_file:
+      - ./.env/.env.dev
+    expose:
+      - "5432"
+    networks:
+      - xeneta-network
+
+networks:
+  xeneta-network:
